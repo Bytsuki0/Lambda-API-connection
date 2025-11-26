@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <title>Clima Atual – Open-Meteo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root { color-scheme: light dark; }
+
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            margin: 40px auto;
+            max-width: 720px;
+            background: #111;
+            color: #eee;
+        }
+
+        .card {
+            background: #fff;
+            color: #000;              /* garante texto escuro no card */
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,.35);
+        }
+
+        h1 {
+            margin: 0 0 16px 0;
+            font-size: 1.6rem;
+        }
+
+        .muted {
+            color: #666;
+            font-size: .9rem;
+            margin-bottom: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .item {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .item b {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        footer {
+            margin-top: 16px;
+            font-size: .9rem;
+            color: #777;
+        }
+
+        code {
+            background: #f6f6f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>Clima Atual – Open-Meteo</h1>
+    <div id="status" class="muted">Carregando dados...</div>
+
+    <div id="dados" style="display:none;">
+        <div class="grid">
+            <div class="item">
+                <b>Cidade</b>
+                <span id="cidade">—</span>
+            </div>
+            <div class="item">
+                <b>Medição</b>
+                <span id="hora">—</span>
+            </div>
+            <div class="item">
+                <b>Temperatura</b>
+                <span id="temp">— °C</span>
+            </div>
+            <div class="item">
+                <b>Vento</b>
+                <span id="vento">— km/h</span>
+            </div>
+        </div>
+
+        <footer>
+            Fonte: <code>latest.json</code> no S3 |
+            Atualizado em: <span id="coleta">—</span>
+        </footer>
+    </div>
+</div>
+
+<script>
+    (async function () {
+        // JSON público no bucket coletor-clima
+        const DATA_URL = "https://coletor-clima.s3.amazonaws.com/latest.json";
+
+        try {
+            const resp = await fetch(DATA_URL, { cache: "no-store" });
+            if (!resp.ok) {
+                throw new Error("HTTP " + resp.status);
+            }
+
+            const j = await resp.json();
+
+            // ------- estrutura real do seu latest.json -------
+            // latitude: -22.375,
+            // longitude: -44.5,
+            // current_weather: {
+            //   time: "...",
+            //   temperature: 23.1,
+            //   windspeed: 12.0,
+            //   ...
+            // }
+
+            const lat  = j.latitude;
+            const lon  = j.longitude;
+            const cw   = j.current_weather;
+
+            // Preenche os campos na tela
+            document.getElementById("cidade").textContent =
+                lat.toFixed(3) + ", " + lon.toFixed(3);
+
+            document.getElementById("temp").textContent =
+                cw.temperature.toFixed(1) + " °C";
+
+            document.getElementById("vento").textContent =
+                cw.windspeed.toFixed(1) + " km/h";
+
+            document.getElementById("hora").textContent = cw.time;
+
+            document.getElementById("coleta").textContent =
+                new Date().toLocaleString("pt-BR");
+
+            // Mostra os dados e atualiza o status
+            document.getElementById("dados").style.display = "block";
+            document.getElementById("status").textContent = "Dados carregados com sucesso.";
+        }
+        catch (e) {
+            document.getElementById("status").textContent =
+                "Erro ao carregar os dados: " + e.message;
+            console.error(e);
+        }
+    })();
+</script>
+</body>
+</html>
